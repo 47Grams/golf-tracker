@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Golf Tracker App</title>
+  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <script src="https://jeromeetienne.github.io/AR.js/aframe/build/aframe-ar.min.js"></script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=geometry"></script>
+</head>
+<body class="bg-gray-900">
+  <div id="root"></div>
+  <script>
+    const { useState, useEffect } = React;
+
+    const COURSE_DATA = {
+      "Foxfire at Village Green": {
+        holeDistances: [
+          "400 yards to green", "380 yards to green", "180 yards to green", "410 yards to green",
+          "500 yards to green", "390 yards to green", "190 yards to green", "400 yards to green",
+          "520 yards to green", "390 yards to green", "400 yards to green", "180 yards to green",
+          "410 yards to green", "530 yards to green", "562 yards to green", "400 yards to green",
+          "174 yards to green", "410 yards to green"
+        ],
+        holePars: [4, 4, 3, 4, 5, 4, 3, 4, 5, 4, 4, 3, 4, 5, 5, 4, 3, 4],
+        greenData: [
+          { width: 30, height: 20, slope: { direction: 'right', percent: 2.0 }, elevation: 0.5, stimp: 10, contours: [{ x: 10, y: 10, elevation: 0.2 }], center: { lat: 43.1590, lng: -76.3410 } },
+          { width: 28, height: 22, slope: { direction: 'left', percent: 1.5 }, elevation: -0.3, stimp: 11, contours: [{ x: 15, y: 12, elevation: -0.1 }], center: { lat: 43.1592, lng: -76.3400 } },
+          { width: 25, height: 18, slope: { direction: 'right', percent: 2.2 }, elevation: 0.2, stimp: 10, contours: [{ x: 12, y: 8, elevation: 0.1 }], center: { lat: 43.1588, lng: -76.3395 } },
+          { width: 32, height: 20, slope: { direction: 'left', percent: 2.5 }, elevation: 0.7, stimp: 12, contours: [{ x: 18, y: 15, elevation: 0.3 }], center: { lat: 43.1570, lng: -76.3405 } },
+          { width: 30, height: 24, slope: { direction: 'right', percent: 1.8 }, elevation: -0.2, stimp: 11, contours: [{ x: 20, y: 10, elevation: -0.2 }], center: { lat: 43.1585, lng: -76.3415 } },
+          { width: 28, height: 20, slope: { direction: 'left', percent: 2.0 }, elevation: 0.4, stimp: 10, contours: [{ x: 10, y: 12, elevation: 0.1 }], center: { lat: 43.1580, lng: -76.3390 } },
+          { width: 26, height: 18, slope: { direction: 'right', percent: 2.3 }, elevation: 0.6, stimp: 12, contours: [{ x: 15, y: 8, elevation: 0.2 }], center: { lat: 43.1575, lng: -76.3395 } },
+          { width: 30, height: 22, slope: { direction: 'left', percent: 1.7 }, elevation: -0.1, stimp: 11, contours: [{ x: 12, y: 15, elevation: -0.1 }], center: { lat: 43.1570, lng: -76.3380 } },
+          { width: 32, height: 24, slope: { direction: 'right', percent: 2.0 }, elevation: 0.3, stimp: 10, contours: [{ x: 18, y: 10, elevation: 0.2 }], center: { lat: 43.1565, lng: -76.3400 } },
+          { width: 30, height: 20, slope: { direction: 'left', percent: 1.9 }, elevation: 0.5, stimp: 11, contours: [{ x: 10, y: 12, elevation: 0.1 }], center: { lat: 43.1570, lng: -76.3370 } },
+          { width: 28, height: 22, slope: { direction: 'right', percent: 2.1 }, elevation: -0.2, stimp: 12, contours: [{ x: 15, y: 15, elevation: -0.2 }], center: { lat: 43.1580, lng: -76.3365 } },
+          { width: 25, height: 18, slope: { direction: 'left', percent: 2.0 }, elevation: 0.4, stimp: 10, contours: [{ x: 12, y: 8, elevation: 0.1 }], center: { lat: 43.1575, lng: -76.3375 } },
+          { width: 30, height: 20, slope: { direction: 'right', percent: 1.8 }, elevation: 0.2, stimp: 11, contours: [{ x: 18, y: 10, elevation: 0.2 }], center: { lat: 43.1570, lng: -76.3385 } },
+          { width: 32, height: 24, slope: { direction: 'left', percent: 2.2 }, elevation: -0.3, stimp: 12, contours: [{ x: 20, y: 12, elevation: -0.1 }], center: { lat: 43.1565, lng: -76.3395 } },
+          { width: 30, height: 22, slope: { direction: 'right', percent: 1.5 }, elevation: 0.5, stimp: 10, contours: [{ x: 10, y: 15, elevation: 0.3 }], center: { lat: 43.1580, lng: -76.3405 } },
+          { width: 28, height: 20, slope: { direction: 'left', percent: 2.0 }, elevation: 0.3, stimp: 11, contours: [{ x: 15, y: 10, elevation: 0.1 }], center: { lat: 43.1575, lng: -76.3380 } },
+          { width: 25, height: 18, slope: { direction: 'right', percent: 1.7 }, elevation: -0.1, stimp: 12, contours: [{ x: 12, y: 8, elevation: -0.2 }], center: { lat: 43.1565, lng: -76.3370 } },
+          { width: 30, height: 20, slope: { direction: 'left', percent: 2.0 }, elevation: 0.4, stimp: 10, contours: [{ x: 18, y: 12, elevation: 0.2 }], center: { lat: 43.1560, lng: -76.3390 } }
+        ]
+      },
+      // Add more courses here as needed
+    };
+
+    const CLUB_OPTIONS = [
+      'Driver', '3-Wood', '5-Wood', '3-Iron', '4-Iron', '5-Iron', '6-Iron', '7-Iron', '8-Iron', '9-Iron',
+      'Pitching Wedge', 'Gap Wedge', 'Sand Wedge', 'Lob Wedge', 'Putter', 'Chip'
+    ];
+
+    const getClubRecommendation = (yards) => {
+      if (yards >= 230) return "Driver";
+      if (yards >= 210) return "3-Wood";
+      if (yards >= 195) return "5-Wood or 3-Iron";
+      if (yards >= 180) return "4-Iron";
+      if (yards >= 170) return "5-Iron";
+      if (yards >= 160) return "6-Iron";
+      if (yards >= 150) return "7-Iron";
+      if (yards >= 140) return "8-Iron";
+      if (yards >= 130) return "9-Iron";
+      if (yards >= 115) return "Pitching Wedge";
+      if (yards >= 100) return "Gap Wedge";
+      if (yards >= 80)  return "Sand Wedge";
+      if (yards >= 30)  return "Lob Wedge";
+      return "Putter or Chip";
+    };
+
+    let holeDistances = COURSE_DATA["Foxfire at Village Green"].holeDistances;
+    let holePars = COURSE_DATA["Foxfire at Village Green"].holePars;
+    let greenData = COURSE_DATA["Foxfire at Village Green"].greenData;
+
+    function RolexClock() {
+      const [now, setNow] = React.useState(new Date());
+      React.useEffect(() => {
+        const timer = setInterval(() => setNow(new Date()), 1000);
+        return () => clearInterval(timer);
+      }, []);
+      // Calculate angles
+      const hour = now.getHours() % 12;
+      const minute = now.getMinutes();
+      const second = now.getSeconds();
+      const hourAngle = (hour + minute / 60) * 30;
+      const minuteAngle = (minute + second / 60) * 6;
+      const secondAngle = second * 6;
+      return React.createElement(
+        'div',
+        { style: { width: 120, height: 120, background: 'radial-gradient(circle at 60% 40%, #e5e5e5 60%, #1a3d2f 100%)', borderRadius: '50%', boxShadow: '0 4px 16px #222', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '4px solid #c9b037', position: 'relative' } },
+        React.createElement('svg', { width: 100, height: 100, viewBox: '0 0 100 100' },
+          React.createElement('circle', { cx: 50, cy: 50, r: 48, fill: '#1a3d2f', stroke: '#c9b037', strokeWidth: 3 }),
+          // Hour marks
+          Array.from({ length: 12 }).map((_, i) =>
+            React.createElement('rect', {
+              key: i,
+              x: 48.5, y: 8,
+              width: 3, height: 10,
+              fill: '#c9b037',
+              transform: `rotate(${i * 30} 50 50)`
+            })
+          ),
+          // Hour hand
+          React.createElement('rect', {
+            x: 48.5, y: 28,
+            width: 3, height: 22,
+            fill: '#fff',
+            rx: 1.5,
+            transform: `rotate(${hourAngle} 50 50)`
+          }),
+          // Minute hand
+          React.createElement('rect', {
+            x: 49.25, y: 18,
+            width: 1.5, height: 32,
+            fill: '#fff',
+            rx: 0.75,
+            transform: `rotate(${minuteAngle} 50 50)`
+          }),
+          // Second hand
+          React.createElement('rect', {
+            x: 49.75, y: 14,
+            width: 0.5, height: 36,
+            fill: '#c9b037',
+            rx: 0.25,
+            transform: `rotate(${secondAngle} 50 50)`
+          }),
+          // Center dot
+          React.createElement('circle', { cx: 50, cy: 50, r: 3, fill: '#c9b037', stroke: '#fff', strokeWidth: 1 })
+        )
+      );
+    }
+
+    const App = () => {
+      const [hole, setHole] = useState(1);
+      const [score, setScore] = useState(0);
+      const [distance, setDistance] = useState(null);
+      const [showScoreSelect, setShowScoreSelect] = useState(false);
+      const [allScores, setAllScores] = useState(Array(18).fill(0));
+      const [showGreenMap, setShowGreenMap] = useState(false);
+      const [showAR, setShowAR] = useState(false);
+      const [showMap, setShowMap] = useState(false);
+      const [pinPosition, setPinPosition] = useState('center');
+      const [wind, setWind] = useState({ speed: 10, direction: 'NW' });
+      const [shots, setShots] = useState([]);
+      const [shotForm, setShotForm] = useState({ club: 'Driver', distance: '', lie: 'Fairway' });
+      const [puttDistance, setPuttDistance] = useState(20);
+      const [ballLocations, setBallLocations] = useState([]);
+      const [map, setMap] = useState(null);
+      const [remainingYards, setRemainingYards] = useState(null);
+      const [courseLocation, setCourseLocation] = useState({ lat: 37.7749, lng: -122.4194 });
+      const [weatherLoading, setWeatherLoading] = useState(false);
+      const [editingShotIndex, setEditingShotIndex] = useState(null);
+      const [editShotForm, setEditShotForm] = useState({ club: '', distance: '', lie: '' });
+      const [selectedCourse, setSelectedCourse] = useState("Foxfire at Village Green");
+      const [holeView, setHoleView] = useState('full'); // 'front', 'back', or 'full'
+
+      useEffect(() => {
+        setDistance(holeDistances[hole - 1]);
+        drawGreenMap(pinPosition, greenData[hole - 1], wind);
+        if (showMap) initMap();
+        loadBallLocations();
+        // eslint-disable-next-line
+      }, [hole, pinPosition, wind, showMap]);
+
+      useEffect(() => {
+        if (ballLocations && ballLocations.length) {
+          localStorage.setItem(`ballLocations_${hole}`, JSON.stringify(ballLocations));
+        }
+        calculateDistances();
+        // eslint-disable-next-line
+      }, [ballLocations]);
+
+      useEffect(() => {
+        holeDistances = COURSE_DATA[selectedCourse].holeDistances;
+        holePars = COURSE_DATA[selectedCourse].holePars;
+        greenData = COURSE_DATA[selectedCourse].greenData;
+        setHole(1);
+        setAllScores(Array(18).fill(0));
+        setShots([]);
+        setRemainingYards(null);
+      }, [selectedCourse]);
+
+      useEffect(() => {
+        // Only auto-set club if the user hasn't manually changed it for this shot
+        // (i.e., if distance is empty or just changed holes)
+        if (shotForm.distance === '' && remainingYards !== null) {
+          const recommended = getClubRecommendation(remainingYards);
+          // Only update if the recommendation is different from current
+          if (shotForm.club !== recommended && CLUB_OPTIONS.includes(recommended)) {
+            setShotForm(form => ({ ...form, club: recommended }));
+          }
+        }
+        // eslint-disable-next-line
+      }, [remainingYards, hole]);
+
+      const initMap = () => {
+        if (!window.google) return;
+        const mapDiv = document.getElementById('googleMap');
+        if (!mapDiv) return;
+        const newMap = new window.google.maps.Map(mapDiv, {
+          center: greenData[hole - 1].center,
+          zoom: 16,
+          mapTypeId: 'satellite'
+        });
+        setMap(newMap);
+        updateMapMarkers(newMap);
+      };
+
+      const updateMapMarkers = (mapInstance) => {
+        if (!mapInstance) return;
+        mapInstance.markers = mapInstance.markers || [];
+        mapInstance.markers.forEach(marker => marker.setMap(null));
+        mapInstance.markers = [];
+        ballLocations.forEach((loc, i) => {
+          const marker = new window.google.maps.Marker({
+            position: { lat: loc.lat, lng: loc.lng },
+            map: mapInstance,
+            label: `${i + 1}`,
+            title: `Shot ${i + 1}`
+          });
+          mapInstance.markers.push(marker);
+        });
+        const greenMarker = new window.google.maps.Marker({
+          position: greenData[hole - 1].center,
+          map: mapInstance,
+          icon: {
+            url: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png',
+            labelOrigin: new window.google.maps.Point(15, 10)
+          },
+          label: 'Pin'
+        });
+        mapInstance.markers.push(greenMarker);
+
+        // Remove old polylines if any
+        if (mapInstance.trackerLine) {
+          mapInstance.trackerLine.setMap(null);
+          mapInstance.trackerLine = null;
+        }
+
+        // Draw a line if there are at least 2 locations
+        if (ballLocations.length >= 2) {
+          const path = ballLocations.map(loc => ({ lat: loc.lat, lng: loc.lng }));
+          mapInstance.trackerLine = new window.google.maps.Polyline({
+            path,
+            geodesic: true,
+            strokeColor: "#00FF00",
+            strokeOpacity: 1.0,
+            strokeWeight: 4
+          });
+          mapInstance.trackerLine.setMap(mapInstance);
+        }
+      };
+
+      const loadBallLocations = () => {
+        const saved = JSON.parse(localStorage.getItem(`ballLocations_${hole}`)) || [];
+        setBallLocations(saved);
+        calculateDistances();
+      };
+
+      const markBallLocation = () => {
+        if (!navigator.geolocation) {
+          alert('Geolocation not supported by your browser.');
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const newLoc = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+              timestamp: new Date().toISOString()
+            };
+            setBallLocations(prev => [...prev, newLoc]);
+            if (map) updateMapMarkers(map);
+          },
+          (error) => {
+            alert('Error getting location: ' + error.message);
+          },
+          { enableHighAccuracy: true }
+        );
+      };
+
+      const calculateDistances = () => {
+        if (!ballLocations.length) {
+          setRemainingYards(parseFloat(holeDistances[hole - 1]) || 0);
+          return;
+        }
+        const lastLoc = ballLocations[ballLocations.length - 1];
+        const greenCenter = greenData[hole - 1].center;
+        if (window.google && window.google.maps && window.google.maps.geometry) {
+          const distanceToGreen = window.google.maps.geometry.spherical.computeDistanceBetween(
+            new window.google.maps.LatLng(lastLoc.lat, lastLoc.lng),
+            new window.google.maps.LatLng(greenCenter.lat, greenCenter.lng)
+          ) * 1.09361;
+          setRemainingYards(Math.round(distanceToGreen));
+        }
+      };
+
+      const handleScoreChange = (value) => {
+        setScore(value);
+        setShowScoreSelect(false);
+        setAllScores(scores => {
+          const updated = [...scores];
+          updated[hole - 1] = value;
+          return updated;
+        });
+      };
+
+      const handleShotDistanceInput = (distanceValue) => {
+        let updatedForm = { ...shotForm, distance: distanceValue };
+        setShotForm(updatedForm);
+        recalculateRemaining([...shots, updatedForm]);
+      };
+
+      const nextHole = () => {
+        setHole(hole < 18 ? hole + 1 : 1);
+        setScore(0);
+        setPinPosition('center');
+        setShots([]);
+        setBallLocations([]);
+        setShowAR(false);
+        setShowMap(false);
+      };
+
+      const prevHole = () => {
+        setHole(hole > 1 ? hole - 1 : 18);
+        setScore(0);
+        setPinPosition('center');
+        setShots([]);
+        setBallLocations([]);
+        setShowAR(false);
+        setShowMap(false);
+      };
+
+      const handleShotSubmit = () => {
+        if (shotForm.distance) {
+          setShots([...shots, shotForm]);
+          setShotForm({ club: 'Driver', distance: '', lie: 'Fairway' });
+          recalculateRemaining([...shots, shotForm]);
+        }
+      };
+
+      const handleEditShot = (idx) => {
+        setEditingShotIndex(idx);
+        setEditShotForm(shots[idx]);
+      };
+
+      const handleSaveEditShot = () => {
+        const updatedShots = shots.map((shot, i) =>
+          i === editingShotIndex ? editShotForm : shot
+        );
+        setShots(updatedShots);
+        setEditingShotIndex(null);
+        setEditShotForm({ club: '', distance: '', lie: '' });
+        recalculateRemaining(updatedShots);
+      };
+
+      const handleCancelEditShot = () => {
+        setEditingShotIndex(null);
+        setEditShotForm({ club: '', distance: '', lie: '' });
+      };
+
+      const recalculateRemaining = (shotsArr) => {
+        const totalShotDistance = shotsArr.reduce((sum, shot) => sum + (parseFloat(shot.distance) || 0), 0);
+        const base = parseFloat(holeDistances[hole - 1]);
+        let newRemaining = base - totalShotDistance;
+        if (isNaN(newRemaining) || newRemaining < 0) newRemaining = 0;
+        setRemainingYards(newRemaining);
+      };
+
+      const drawGreenMap = (pin, green, windData) => {
+        const canvas = document.getElementById('greenCanvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#90EE90';
+        ctx.fillRect(50, 30, 200, 120);
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 1;
+        for (let x = 50; x <= 250; x += 33.33) {
+          ctx.beginPath();
+          ctx.moveTo(x, 30);
+          ctx.lineTo(x, 150);
+          ctx.stroke();
+        }
+        for (let y = 30; y <= 150; y += 20) {
+          ctx.beginPath();
+          ctx.moveTo(50, y);
+          ctx.lineTo(250, y);
+          ctx.stroke();
+        }
+        green.contours.forEach(contour => {
+          ctx.fillStyle = contour.elevation > 0 ? '#FFD700' : '#87CEEB';
+          ctx.beginPath();
+          ctx.arc(50 + contour.x * 6.67, 30 + contour.y * 6, 3, 0, 2 * Math.PI);
+          ctx.fill();
+        });
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        const arrowX = green.slope.direction === 'right' ? 100 : 120;
+        ctx.moveTo(arrowX, 90);
+        ctx.lineTo(arrowX + (green.slope.direction === 'right' ? 20 : -20), 90);
+        ctx.lineTo(arrowX + (green.slope.direction === 'right' ? 15 : -15), 85);
+        ctx.lineTo(arrowX + (green.slope.direction === 'right' ? 15 : -15), 95);
+        ctx.fill();
+        ctx.fillStyle = '#FF0000';
+        const pinCoords = {
+          center: [150, 90],
+          front: [100, 50],
+          back: [200, 130]
+        };
+        const [px, py] = pinCoords[pin];
+        ctx.beginPath();
+        ctx.arc(px, py, 5, 0, 2 * Math.PI);
+        ctx.fill();
+        const aimAdjust = green.slope.direction === 'right' ? 10 : -10;
+        ctx.fillStyle = '#FFFF00';
+        ctx.beginPath();
+        ctx.arc(px + aimAdjust, py, 3, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.fillStyle = '#000000';
+        ctx.font = '12px Arial';
+        ctx.fillText(`${green.slope.percent}% slope ${green.slope.direction}`, 60, 40);
+        ctx.fillText(`Elev: ${green.elevation}m, Stimp: ${green.stimp}`, 60, 160);
+        ctx.fillText(`Wind: ${windData.speed}mph ${windData.direction}`, 60, 20);
+      };
+
+      const calculatePlaysLikeDistance = () => {
+        const baseDistance = remainingYards || parseFloat(holeDistances[hole - 1]) || 150;
+        const elevation = greenData[hole - 1].elevation;
+        const windFactor = wind.speed * (wind.direction.includes('W') ? -0.5 : 0.5);
+        return Math.round(baseDistance + elevation * 10 + windFactor);
+      };
+
+      const getPuttSuggestion = () => {
+        const green = greenData[hole - 1];
+        const slope = green.slope;
+        const elevation = green.elevation;
+        const stimp = green.stimp;
+        const windSpeed = wind.speed;
+        let aimAdjust = slope.percent * puttDistance / 10;
+        aimAdjust = slope.direction === 'right' ? aimAdjust : -aimAdjust;
+        if (windSpeed > 15) aimAdjust += wind.direction.includes('W') ? 2 : -2;
+        const speedFactor = stimp / 10 + (elevation > 0 ? 0.2 : elevation < 0 ? -0.2 : 0);
+        const strength = speedFactor > 1.1 ? 'harder' : speedFactor < 0.9 ? 'softer' : 'normal';
+        return `Aim ${Math.abs(aimAdjust).toFixed(1)}ft ${aimAdjust > 0 ? 'right' : 'left'} of pin, putt ${strength}`;
+      };
+
+      const calculateStrokesGained = () => {
+        const par = holePars[hole - 1];
+        const strokes = allScores[hole - 1] || score;
+        if (!strokes) return 0;
+        return (par - strokes).toFixed(2);
+      };
+
+      const fetchWeather = async () => {
+        setWeatherLoading(true);
+        const apiKey = 'YOUR_OPENWEATHERMAP_API_KEY';
+        const { lat, lng } = courseLocation;
+        const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${apiKey}&units=imperial`;
+        try {
+          const res = await fetch(url);
+          const data = await res.json();
+          const windSpeed = data.wind.speed; // mph
+          const windDeg = data.wind.deg; // degrees
+          const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+          const dirIdx = Math.round(windDeg / 45) % 8;
+          setWind({ speed: Math.round(windSpeed), direction: directions[dirIdx] });
+        } catch (e) {
+          alert('Failed to fetch weather');
+        }
+        setWeatherLoading(false);
+      };
+
+      const getHoleRange = () => {
+        if (holeView === 'front') return [0, 9]; // holes 1-9
+        if (holeView === 'back') return [9, 18]; // holes 10-18
+        return [0, 18]; // all 18
+      };
+
+      return React.createElement(
+        'div',
+        { className: 'min-h-screen bg-gray-800 p-4' },
+        React.createElement(
+          'div',
+          { className: 'max-w-2xl mx-auto bg-gray-800 rounded-lg shadow-2xl p-8' },
+          React.createElement(
+            'div',
+            { className: 'mb-4 flex gap-4 items-center' },
+            React.createElement(
+              'label',
+              { className: 'text-white mr-2' },
+              'Choose Course:'
+            ),
+            React.createElement(
+              'select',
+              {
+                className: 'p-2 border rounded text-gray-800',
+                value: selectedCourse,
+                onChange: (e) => setSelectedCourse(e.target.value)
+              },
+              Object.keys(COURSE_DATA).map(course =>
+                React.createElement('option', { key: course, value: course }, course)
+              )
+            ),
+            React.createElement(
+              'div',
+              { className: 'flex gap-2 ml-4' },
+              ['front', 'back', 'full'].map(view =>
+                React.createElement(
+                  'button',
+                  {
+                    key: view,
+                    className:
+                      'px-3 py-1 rounded font-bold ' +
+                      (holeView === view
+                        ? 'bg-green-600 text-white'
+                        : 'bg-gray-300 text-gray-800 hover:bg-green-200'),
+                    onClick: () => {
+                      setHoleView(view);
+                      // Set hole to first hole of the selected view
+                      if (view === 'front') setHole(1);
+                      else if (view === 'back') setHole(10);
+                      else setHole(1);
+                      // Reset per-hole info
+                      setScore(0);
+                      setPinPosition('center');
+                      setShots([]);
+                      setBallLocations([]);
+                      setShowAR(false);
+                      setShowMap(false);
+                      setRemainingYards(null);
+                      setDistance(holeDistances[view === 'back' ? 9 : 0]);
+                    }
+                  },
+                  view === 'front' ? 'Front 9' : view === 'back' ? 'Back 9' : 'Full 18'
+                )
+              )
+            )
+          ),
+          React.createElement(
+            'h1',
+            { className: 'text-2xl font-bold text-center text-green-600' },
+            'Golf Tracker'
+          ),
+          React.createElement(
+            'div',
+            { className: 'flex justify-center mb-6' },
+            React.createElement(RolexClock, null)
+          ),
+          React.createElement(
+            'div',
+            { className: 'mt-4' },
+            (() => {
+              const [start, end] = getHoleRange();
+              return React.createElement(
+                'div',
+                { className: 'flex flex-wrap gap-2 items-center mb-2' },
+                React.createElement(
+                  'span',
+                  { className: 'text-lg font-semibold text-white mr-2' },
+                  'Hole:'
+                ),
+                Array.from({ length: end - start }, (_, i) =>
+                  React.createElement(
+                    'button',
+                    {
+                      key: i + start + 1,
+                      className:
+                        'px-3 py-1 rounded font-bold border ' +
+                        (hole === i + start + 1
+                          ? 'bg-green-600 text-white border-green-700'
+                          : 'bg-gray-300 text-gray-800 border-gray-400 hover:bg-green-200'),
+                      onClick: () => {
+                        setHole(i + start + 1);
+                        setScore(0);
+                        setPinPosition('center');
+                        setShots([]);
+                        setBallLocations([]);
+                        setShowAR(false);
+                        setShowMap(false);
+                        setRemainingYards(null);
+                      }
+                    },
+                    i + start + 1
+                  )
+                )
+              );
+            })(),
+            React.createElement(
+              'div',
+              { className: 'mb-2 p-2 rounded bg-gray-700 text-gray-100 text-sm flex flex-wrap gap-4 items-center' },
+              React.createElement('span', null, `Green: ${greenData[hole - 1].width}x${greenData[hole - 1].height} yds`),
+              React.createElement('span', null, `Slope: ${greenData[hole - 1].slope.percent}% ${greenData[hole - 1].slope.direction}`),
+              React.createElement('span', null, `Elevation: ${greenData[hole - 1].elevation}m`),
+              React.createElement('span', null, `Stimp: ${greenData[hole - 1].stimp}`),
+              React.createElement('span', null, `Contours: ${greenData[hole - 1].contours.map(c => `(${c.x},${c.y},${c.elevation})`).join(' ')}`)
+            ),
+            React.createElement(
+              'div',
+              { className: 'flex flex-wrap gap-2 mb-2' },
+              React.createElement(
+                'span',
+                { className: 'bg-gray-700 text-gray-100 text-sm rounded px-3 py-1' },
+                `Distance: ${distance || 'Loading...'}`
+              ),
+              React.createElement(
+                'span',
+                { className: 'bg-gray-700 text-gray-100 text-sm rounded px-3 py-1' },
+                `Remaining: ${remainingYards !== null ? remainingYards : 'N/A'} yards`
+              ),
+              React.createElement(
+                'span',
+                { className: 'bg-gray-700 text-gray-100 text-sm rounded px-3 py-1' },
+                `Strokes Gained: ${calculateStrokesGained()}`
+              ),
+              React.createElement(
+                'span',
+                { className: 'bg-gray-700 text-green-300 text-sm rounded px-3 py-1 font-bold' },
+                `Recommended Club: ${getClubRecommendation(remainingYards || 0)}`
+              )
+            ),
+            React.createElement(
+              'div',
+              { className: 'mt-4 flex justify-between items-center' },
+              React.createElement(
+                'div',
+                null,
+                showScoreSelect
+                  ? React.createElement(
+                      'div',
+                      { className: 'flex flex-wrap gap-2' },
+                      Array.from({ length: 10 }, (_, i) =>
+                        React.createElement(
+                          'button',
+                          {
+                            key: i + 1,
+                            className: 'bg-green-200 px-2 py-1 rounded hover:bg-green-400',
+                            onClick: () => handleScoreChange(i + 1)
+                          },
+                          i + 1
+                        )
+                      )
+                    )
+                  : React.createElement(
+                      'button',
+                      {
+                        className: 'text-lg underline text-green-600 font-bold',
+                        onClick: () => setShowScoreSelect(true)
+                      },
+                      `Score: ${score}`
+                    )
+              ),
+              React.createElement(
+                'p',
+                { className: 'text-lg text-green-600 font-bold' },
+                `Par: ${holePars[hole - 1]}`
+              )
+            ),
+            React.createElement(
+              'div',
+              { className: 'flex justify-between mt-2' },
+              React.createElement(
+                'button',
+                {
+                  className: 'bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600',
+                  onClick: prevHole
+                },
+                'Previous Hole'
+              ),
+              React.createElement(
+                'button',
+                {
+                  className: 'bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600',
+                  onClick: nextHole
+                },
+                'Next Hole'
+              )
+            ),
+            React.createElement(
+              'div',
+              { className: 'mt-4 flex gap-2 flex-wrap' },
+              React.createElement(
+                'button',
+                {
+                  className: 'bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600',
+                  onClick: () => {
+                    setShowGreenMap(!showGreenMap);
+                    if (!showGreenMap) {
+                      setTimeout(() => {
+                        drawGreenMap(pinPosition, greenData[hole - 1], wind);
+                      }, 0);
+                    }
+                  }
+                },
+                showGreenMap ? 'Hide Green Map' : 'Show Green Map'
+              ),
+              React.createElement(
+                'button',
+                {
+                  className: 'bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600',
+                  onClick: () => setShowAR(!showAR)
+                },
+                showAR ? 'Hide AR View' : 'Show AR View'
+              ),
+              React.createElement(
+                'button',
+                {
+                  className: 'bg-teal-500 text-white px-4 py-2 rounded hover:bg-teal-600',
+                  onClick: () => setShowMap(!showMap)
+                },
+                showMap ? 'Hide Map View' : 'Show Map View'
+              ),
+              React.createElement(
+                'select',
+                {
+                  className: 'p-2 border rounded text-gray-800',
+                  value: pinPosition,
+                  onChange: (e) => {
+                    setPinPosition(e.target.value);
+                    if (!showGreenMap) setShowGreenMap(true);
+                  }
+                },
+                React.createElement('option', { value: 'center' }, 'Center Pin'),
+                React.createElement('option', { value: 'front' }, 'Front Pin'),
+                React.createElement('option', { value: 'back' }, 'Back Pin')
+              )
+            ),
+            showGreenMap && React.createElement(
+              'div',
+              { className: 'mt-4' },
+              React.createElement(
+                'canvas',
+                { id: 'greenCanvas', width: 300, height: 180 },
+                'Your browser does not support canvas.'
+              ),
+              React.createElement(
+                'p',
+                { className: 'text-sm text-gray-400 mt-2' },
+                `Green: ${greenData[hole - 1].width}x${greenData[hole - 1].height} yards, ${greenData[hole - 1].slope.percent}% slope ${greenData[hole - 1].slope.direction}, ${greenData[hole - 1].elevation}m, Stimp ${greenData[hole - 1].stimp}`
+              ),
+              React.createElement(
+                'div',
+                { className: 'mt-2' },
+                React.createElement(
+                  'label',
+                  { className: 'text-white' },
+                  'Putt Distance (ft): '
+                ),
+                React.createElement(
+                  'input',
+                  {
+                    type: 'number',
+                    className: 'p-2 border rounded w-20 text-gray-800',
+                    value: puttDistance,
+                    onChange: (e) => setPuttDistance(parseInt(e.target.value) || 20)
+                  }
+                )
+              ),
+              React.createElement(
+                'p',
+                { className: 'text-sm text-yellow-400 mt-1' },
+                `Putt Suggestion: ${getPuttSuggestion()}`
+              )
+            ),
+            showAR && React.createElement(
+              'div',
+              { className: 'mt-4' },
+              React.createElement(
+                'p',
+                { className: 'text-sm text-gray-400' },
+                'Print this marker: https://jeromeetienne.github.io/AR.js/data/images/Hiro.png, then point your phone camera at it.'
+              ),
+              React.createElement(
+                'a-scene',
+                {
+                  embedded: true,
+                  'arjs': 'sourceType: webcam; debugUIEnabled: false;'
+                },
+                React.createElement(
+                  'a-marker',
+                  { preset: 'hiro' },
+                  React.createElement(
+                    'a-plane',
+                    {
+                      position: '0 0 0',
+                      rotation: '-90 0 0',
+                      width: '1',
+                      height: '0.67',
+                      color: '#90EE90'
+                    }
+                  ),
+                  React.createElement(
+                    'a-sphere',
+                    {
+                      position: `${pinPosition === 'center' ? '0 0.1 0' : pinPosition === 'front' ? '-0.33 0.1 -0.2' : '0.33 0.1 0.2'}`,
+                      radius: '0.05',
+                      color: '#FF0000'
+                    }
+                  ),
+                  React.createElement(
+                    'a-cone',
+                    {
+                      position: '0 0.1 0',
+                      rotation: `${greenData[hole - 1].slope.direction === 'right' ? '0 0 -90' : '0 0 90'}`,
+                      'radius-bottom': '0.1',
+                      'radius-top': '0',
+                      height: '0.2',
+                      color: '#000000'
+                    }
+                  )
+                ),
+                React.createElement('a-camera', { position: '0 1.6 0' })
+              )
+            ),
+            showMap && React.createElement(
+              'div',
+              { className: 'mt-4' },
+              React.createElement(
+                'div',
+                { id: 'googleMap', style: { height: '300px', width: '100%' } }
+              ),
+              React.createElement(
+                'p',
+                { className: 'text-sm text-gray-400 mt-2' },
+                'Click "Mark Ball" to pin your ball\'s location using GPS.'
+              )
+            ),
+            React.createElement(
+              'div',
+              { className: 'mt-4' },
+              React.createElement(
+                'h3',
+                { className: 'text-lg font-semibold text-white' },
+                'Course Location'
+              ),
+              React.createElement(
+                'button',
+                {
+                  className: 'bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600',
+                  onClick: fetchWeather,
+                  disabled: weatherLoading
+                },
+                weatherLoading ? 'Loading...' : 'Get Weather'
+              )
+            ),
+            React.createElement(
+              'div',
+              { className: 'mt-4' },
+              React.createElement(
+                'h3',
+                { className: 'text-lg font-semibold text-white' },
+                'Wind Conditions'
+              ),
+              React.createElement(
+                'div',
+                { className: 'flex gap-2' },
+                React.createElement(
+                  'input',
+                  {
+                    type: 'number',
+                    className: 'p-2 border rounded w-20 text-gray-800',
+                    value: wind.speed,
+                    onChange: (e) => setWind({ ...wind, speed: parseInt(e.target.value) || 0 })
+                  }
+                ),
+                React.createElement(
+                  'select',
+                  {
+                    className: 'p-2 border rounded text-gray-800',
+                    value: wind.direction,
+                    onChange: (e) => setWind({ ...wind, direction: e.target.value })
+                  },
+                  ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'].map(dir =>
+                    React.createElement('option', { key: dir, value: dir }, dir)
+                  )
+                )
+              )
+            ),
+            React.createElement(
+              'div',
+              { className: 'mt-4' },
+              React.createElement(
+                'h3',
+                { className: 'text-lg font-semibold text-white' },
+                'Shot Tracking'
+              ),
+              React.createElement(
+                'div',
+                { className: 'flex gap-2 flex-wrap' },
+                React.createElement(
+                  'select',
+                  {
+                    className: 'p-2 border rounded text-gray-800',
+                    value: shotForm.club,
+                    onChange: (e) => setShotForm({ ...shotForm, club: e.target.value })
+                  },
+                  CLUB_OPTIONS.map(club =>
+                    React.createElement('option', { key: club, value: club }, club)
+                  )
+                ),
+                React.createElement(
+                  'input',
+                  {
+                    type: 'number',
+                    className: 'p-2 border rounded w-20 text-gray-800',
+                    placeholder: 'Distance',
+                    value: shotForm.distance,
+                    onChange: (e) => handleShotDistanceInput(e.target.value)
+                  }
+                ),
+                React.createElement(
+                  'select',
+                  {
+                    className: 'p-2 border rounded text-gray-800',
+                    value: shotForm.lie,
+                    onChange: (e) => setShotForm({ ...shotForm, lie: e.target.value })
+                  },
+                  ['Fairway', 'Rough', 'Bunker', 'Green'].map(lie =>
+                    React.createElement('option', { key: lie, value: lie }, lie)
+                  )
+                ),
+                React.createElement(
+                  'button',
+                  {
+                    className: 'bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600',
+                    onClick: handleShotSubmit
+                  },
+                  'Add Shot'
+                ),
+                React.createElement(
+                  'button',
+                  {
+                    className: 'bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600',
+                    onClick: markBallLocation
+                  },
+                  'Mark Ball'
+                )
+              ),
+              shots.length > 0 && React.createElement(
+                'ul',
+                { className: 'mt-2 text-white' },
+                shots.map((shot, i) =>
+                  editingShotIndex === i
+                    ? React.createElement(
+                        'li',
+                        { key: i, className: 'mb-2 flex flex-wrap gap-2 items-center' },
+                        React.createElement('select', {
+                          className: 'p-1 border rounded text-gray-800',
+                          value: editShotForm.club,
+                          onChange: (e) => setEditShotForm({ ...editShotForm, club: e.target.value })
+                        },
+                          CLUB_OPTIONS.map(club =>
+                            React.createElement('option', { key: club, value: club }, club)
+                          )
+                        ),
+                        React.createElement('input', {
+                          type: 'number',
+                          className: 'p-1 border rounded w-20 text-gray-800',
+                          value: editShotForm.distance,
+                          onChange: (e) => setEditShotForm({ ...editShotForm, distance: e.target.value })
+                        }),
+                        React.createElement('select', {
+                          className: 'p-1 border rounded text-gray-800',
+                          value: editShotForm.lie,
+                          onChange: (e) => setEditShotForm({ ...editShotForm, lie: e.target.value })
+                        },
+                          ['Fairway', 'Rough', 'Bunker', 'Green'].map(lie =>
+                            React.createElement('option', { key: lie, value: lie }, lie)
+                          )
+                        ),
+                        React.createElement('button', {
+                          className: 'bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600 ml-2',
+                          onClick: handleSaveEditShot
+                        }, 'Save'),
+                        React.createElement('button', {
+                          className: 'bg-gray-500 text-white px-2 py-1 rounded hover:bg-gray-600 ml-2',
+                          onClick: handleCancelEditShot
+                        }, 'Cancel')
+                      )
+                    : React.createElement(
+                        'li',
+                        { key: i, className: 'mb-2 flex flex-wrap gap-2 items-center' },
+                        `${shot.club}, ${shot.distance} yards, ${shot.lie}`,
+                        React.createElement('button', {
+                          className: 'bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 ml-2',
+                          onClick: () => handleEditShot(i)
+                        }, 'Edit')
+                      )
+                )
+              )
+            )
+          ),
+          React.createElement(
+            'div',
+            { className: 'mt-8' },
+            React.createElement(
+              'h2',
+              { className: 'text-xl font-bold text-green-700 mb-2' },
+              'Scorecard'
+            ),
+            React.createElement(
+              'div',
+              { className: 'w-full overflow-x-auto' },
+              React.createElement(
+                'table',
+                { className: 'w-full text-center border border-gray-300 rounded overflow-hidden' },
+                React.createElement(
+                  'thead',
+                  { className: 'bg-gray-800 text-white' },
+                  React.createElement(
+                    'tr',
+                    null,
+                    React.createElement('th', { className: 'py-1 px-2 border' }, 'Hole'),
+                    (() => {
+                      const [start, end] = getHoleRange();
+                      return Array.from({ length: end - start }, (_, i) =>
+                        React.createElement(
+                          'th',
+                          { key: i + start, className: 'py-1 px-2 border text-yellow-400' },
+                          i + 1 + start
+                        )
+                      );
+                    })(),
+                    React.createElement('th', { className: 'py-1 px-2 border text-green-400' }, 'Total')
+                  ),
+                  React.createElement(
+                    'tr',
+                    null,
+                    React.createElement('th', { className: 'py-1 px-2 border' }, 'Par'),
+                    (() => {
+                      const [start, end] = getHoleRange();
+                      return holePars.slice(start, end).map((par, i) =>
+                        React.createElement('td', { key: i + start, className: 'py-1 px-2 border' }, par)
+                      );
+                    })(),
+                    React.createElement(
+                      'td',
+                      { className: 'py-1 px-2 border font-bold text-green-400' },
+                      (() => {
+                        const [start, end] = getHoleRange();
+                        return holePars.slice(start, end).reduce((a, b) => a + b, 0);
+                      })()
+                    )
+                  ),
+                  React.createElement(
+                    'tr',
+                    null,
+                    React.createElement('th', { className: 'py-1 px-2 border' }, 'Score'),
+                    (() => {
+                      const [start, end] = getHoleRange();
+                      return allScores.slice(start, end).map((s, i) => {
+                        const par = holePars[i + start];
+                        let className = 'py-1 px-2 border';
+                        if (s) {
+                          className += s < par ? ' text-green-400' : s > par ? ' text-red-400' : ' text-blue-400';
+                        }
+                        return React.createElement('td', { key: i + start, className }, s || '');
+                      });
+                    })(),
+                    React.createElement(
+                      'td',
+                      { className: 'py-1 px-2 border font-bold text-green-300' },
+                      (() => {
+                        const [start, end] = getHoleRange();
+                        return allScores.slice(start, end).reduce((a, b) => a + (b || 0), 0);
+                      })()
+                    )
+                  )
+                )
+              )
+            )
+          ),
+          React.createElement(
+            'div',
+            { className: 'mt-8' },
+            React.createElement(
+              'img',
+              {
+                src: "images/my-image.jpg",
+                alt: "Description",
+                className: "rounded shadow-lg w-full max-w-xs mx-auto"
+              }
+            )
+          )
+        )
+      );
+    };
+
+    ReactDOM.render(React.createElement(App), document.getElementById('root'));
+  </script>
+</body>
+</html>
